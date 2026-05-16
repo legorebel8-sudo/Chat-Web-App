@@ -1,0 +1,25 @@
+{
+  "name": "chat-web-app",
+  "version": "1.0.0",
+  "description": "I will make a Chat Web App. In this web app, I can chat, and other people like friends, etc. Hoooray!!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/legorebel8-sudo/Chat-Web-App.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/legorebel8-sudo/Chat-Web-App/issues"
+  },
+  "homepage": "https://github.com/legorebel8-sudo/Chat-Web-App#readme",
+  "dependencies": {
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  }
+}
