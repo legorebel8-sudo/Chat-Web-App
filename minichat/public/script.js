@@ -253,3 +253,5 @@ messageInput.addEventListener("keydown", function (e) {
 openChat("Example Chat");
 renderChatList();
 updateCurrentChatLabel();
+
+// Hello
