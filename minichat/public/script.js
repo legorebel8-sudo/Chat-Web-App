@@ -201,43 +201,6 @@ function handleSendMessage() {
   messageInput.value = "";
 }
 
-function renderInviteButton() {
-  const existingButton = document.getElementById("inviteButton");
-  if (existingButton) {
-    existingButton.remove();
-  }
-
-  const button = document.createElement("button");
-  button.id = "inviteButton";
-  button.textContent = "Invite Someone";
-
-  Object.assign(button.style, {
-    marginTop: "10px",
-    padding: "10px",
-    border: "none",
-    background: "darkslateblue",
-    color: "white",
-    cursor: "pointer",
-    borderRadius: "5px",
-  });
-
-  button.addEventListener("click", () => {
-    const name = prompt("Enter name to invite:");
-    if (!name) return;
-
-    const members = state.chats[state.currentChat].members;
-    if (!members.includes(name)) {
-      members.push(name);
-      saveChats();
-      alert(`${name} invited!`);
-      return;
-    }
-
-    alert("Already invited.");
-  });
-
-  document.querySelector(".chat-container").appendChild(button);
-}
 
 init();
 
