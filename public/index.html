@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Quantum-Link</title>
+
+    <!-- Link to our stylesheet for colours and layout -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!--
+    APP LAYOUT
+    The page is split into two side-by-side sections:
+      - Left:  Sidebar  (chat list + action buttons)
+      - Right: Chat area (messages + input box)
+-->
+<div class="app">
+
+    <!-- =====================
+         LEFT SIDEBAR
+         Shows all available chats and buttons to create or join one.
+    ===================== -->
+    <div class="sidebar">
+
+        <h2>Chats</h2>
+
+        <!-- These buttons are connected to JavaScript functions -->
+        <button id="createChatButton">Create Chat</button>
+        <button id="joinChatButton">Join Chat</button>
+
+        <!-- JavaScript fills this div with the list of chat rooms -->
+        <div id="chatList"></div>
+
+    </div>
+
+    <!-- =====================
+         MAIN CHAT AREA
+         Shows the current chat name, message history, and the input bar.
+    ===================== -->
+    <div class="chat-container">
+
+        <!-- Displays which chat room is currently open -->
+        <div id="currentChatDisplay">Current Chat: Example Chat</div>
+
+        <!-- Message history — JavaScript adds messages here -->
+        <div id="messages"></div>
+
+        <!-- Input bar at the bottom: text field + send button -->
+        <div class="input-area">
+            <input id="messageInput" type="text" placeholder="Type a message...">
+            <button id="sendButton">Send</button>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Socket.IO client — automatically served by the server, lets the browser talk in real time -->
+<script src="/socket.io/socket.io.js"></script>
+
+<!-- Load our frontend JavaScript (placed at the bottom so HTML loads first) -->
+<script src="script.js"></script>
+
+</body>
+</html>

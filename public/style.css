@@ -1,0 +1,205 @@
+/* ============================================================
+   Quantum-Link — Stylesheet
+   Dark theme using shades of slate and blue.
+   ============================================================ */
+
+/* --- Base Styles --- */
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: #0f172a; /* deep slate background */
+    color: #e5e7eb;      /* light grey text */
+    height: 100vh;
+    overflow: hidden;    /* prevent the whole page from scrolling */
+}
+
+
+/* ============================================================
+   APP LAYOUT
+   Uses flexbox to place the sidebar and chat area side by side.
+   ============================================================ */
+
+.app {
+    display: flex;
+    height: 100vh;
+}
+
+
+/* ============================================================
+   SIDEBAR
+   Fixed-width column on the left showing chats and buttons.
+   ============================================================ */
+
+.sidebar {
+    width: 260px;
+    background: #020600;
+    border-right: 1px solid #1f2937;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar h2 {
+    margin: 10px 0 20px;
+    font-size: 18px;
+    color: #f9fafb;
+}
+
+/* "Create Chat" and "Join Chat" buttons */
+.sidebar button {
+    margin-bottom: 10px;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #1f2937;
+    color: #e5e7eb;
+    transition: background 0.2s;
+}
+
+.sidebar button:hover {
+    background: #374151;
+}
+
+
+/* ============================================================
+   CHAT LIST
+   The scrollable list of chat rooms in the sidebar.
+   ============================================================ */
+
+#chatList {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* One row in the chat list */
+.chat-item {
+    padding: 10px;
+    border-radius: 8px;
+    background: #1f2937;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+}
+
+.chat-item:hover {
+    background: #374151;
+}
+
+/* Highlight the chat that is currently open */
+.active-chat {
+    background: #2563eb;
+}
+
+/* Small "X" delete button inside each chat item */
+.delete-chat-btn {
+    background: transparent;
+    border: none;
+    color: #f87171;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.delete-chat-btn:hover {
+    color: #ef4444;
+}
+
+
+/* ============================================================
+   CHAT AREA
+   The main panel on the right — fills all remaining space.
+   ============================================================ */
+
+.chat-container {
+    flex: 1;               /* grow to fill whatever space is left */
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    background: #111827;
+}
+
+/* Label at the top showing which chat is open */
+#currentChatDisplay {
+    padding: 10px;
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    color: #e5e7eb;
+}
+
+
+/* ============================================================
+   MESSAGES
+   Scrollable area where chat messages appear.
+   ============================================================ */
+
+#messages {
+    flex: 1;
+    overflow-y: auto;    /* scroll when messages overflow */
+    padding: 15px;
+    background: #111827;
+    border-radius: 10px;
+    border: 1px solid #1f2937;
+}
+
+/* Individual message bubble */
+.message {
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    max-width: 65%;
+    word-wrap: break-word;
+}
+
+/* Alternate message colours to visually separate different users */
+.message:nth-child(odd) {
+    background: #1f2937;         /* dark grey — left side */
+}
+
+.message:nth-child(even) {
+    background: #2563eb;         /* blue — right side */
+    margin-left: auto;
+}
+
+
+/* ============================================================
+   INPUT AREA
+   The bar at the bottom with the text field and Send button.
+   ============================================================ */
+
+.input-area {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+#messageInput {
+    flex: 1;                     /* stretch to fill available width */
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #1f2937;
+    background: #111827;
+    color: #e5e7eb;
+    outline: none;
+}
+
+#sendButton {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #2563eb;
+    color: white;
+    transition: background 0.2s;
+}
+
+#sendButton:hover {
+    background: #1d4ed8;
+}
