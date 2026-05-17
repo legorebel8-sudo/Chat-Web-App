@@ -2,94 +2,121 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quantum-Link</title>
 
-    <!-- Link to our stylesheet for colours and layout -->
+    <!-- Link to our stylesheet -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <!--
     USERNAME MODAL
-    This overlay appears when the user first visits the app.
-    JavaScript hides it once a username has been chosen.
-    It sits on top of everything via CSS position: fixed.
+    This full-screen overlay is shown when the user first visits the app.
+    JavaScript hides it once they submit their name.
+    It sits on top of everything using position: fixed.
 -->
 <div id="usernameModal" class="modal-overlay">
     <div class="modal-card">
-        <h2>Welcome to Quantum-Link</h2>
-        <p>Choose a username to get started.</p>
-        <input id="usernameInput" type="text" placeholder="Enter your username..." maxlength="20">
-        <button id="usernameSubmit">Join Chat</button>
+        <div class="modal-logo">⚡</div>
+        <h2>Quantum-Link</h2>
+        <p>Enter your name to start chatting</p>
+        <input id="usernameInput" type="text" placeholder="Your name..." maxlength="20">
+        <button id="usernameSubmit">Start Chatting</button>
     </div>
 </div>
 
 
 <!--
-    APP LAYOUT
-    Hidden until a username is set (shown by JavaScript).
-    Split into three columns:
-      - Left:   Sidebar  (chat list + buttons)
-      - Center: Chat area (messages + input)
-      - Right:  Users panel (who is online in this room)
+    MAIN APP
+    Hidden at first — revealed by JavaScript after the user picks a name.
+    Two-column layout:
+      Left  → Sidebar (chat list, search, buttons)
+      Right → Chat area (messages + input)
 -->
 <div class="app" id="app">
 
-    <!-- =====================
+    <!-- ================================
          LEFT SIDEBAR
-         Shows all available chats and buttons to create or join one.
-    ===================== -->
-    <div class="sidebar">
+         Shows the user's avatar, a search bar, and all chat rooms.
+    ================================ -->
+    <div id="sidebar">
 
-        <h2>Chats</h2>
+        <!-- Top bar: current user's avatar, name, and "new room" button -->
+        <div id="sidebar-header">
+            <div id="my-avatar" class="avatar avatar-sm"></div>
+            <span id="my-username">You</span>
+            <button id="createChatButton" class="icon-btn" title="Create New Room">＋</button>
+        </div>
 
-        <!-- These buttons are connected to JavaScript functions -->
-        <button id="createChatButton">Create Chat</button>
-        <button id="joinChatButton">Join Chat</button>
+        <!-- Search box — filters the room list as you type -->
+        <div id="search-bar">
+            <input id="searchInput" type="text" placeholder="Search chats...">
+        </div>
 
-        <!-- JavaScript fills this div with the list of chat rooms -->
+        <!-- JavaScript fills this div with the list of available rooms -->
         <div id="chatList"></div>
 
-    </div>
-
-    <!-- =====================
-         MAIN CHAT AREA
-         Shows the current chat name, message history, and the input bar.
-    ===================== -->
-    <div class="chat-container">
-
-        <!-- Displays which chat room is currently open -->
-        <div id="currentChatDisplay">Current Chat: Example Chat</div>
-
-        <!-- Message history — JavaScript adds messages here -->
-        <div id="messages"></div>
-
-        <!-- Input bar at the bottom: text field + send button -->
-        <div class="input-area">
-            <input id="messageInput" type="text" placeholder="Type a message...">
-            <button id="sendButton">Send</button>
+        <!-- Bottom of sidebar: button to join a room by typing its name -->
+        <div id="sidebar-footer">
+            <button id="joinChatButton">Join a Room</button>
         </div>
 
     </div>
 
-    <!-- =====================
-         ONLINE USERS PANEL
-         Shows who is currently in this chat room.
-         JavaScript updates this list whenever someone joins or leaves.
-    ===================== -->
-    <div class="users-panel">
-        <h3>Online</h3>
-        <!-- JavaScript fills this div with the list of usernames -->
-        <div id="userList"></div>
+
+    <!-- ================================
+         MAIN CHAT AREA
+         Shows either the welcome screen or an active chat.
+    ================================ -->
+    <div id="chat-area">
+
+        <!-- Shown before any room is selected -->
+        <div id="welcome-screen">
+            <div class="welcome-icon">⚡</div>
+            <h2>Quantum-Link</h2>
+            <p>Select a chat room to start messaging</p>
+        </div>
+
+        <!-- Shown once a room is joined (hidden until then) -->
+        <div id="active-chat" class="hidden">
+
+            <!-- Header bar: back button (mobile), room avatar, room name, member toggle -->
+            <div id="chat-header">
+                <button id="back-btn" class="icon-btn back-btn" title="Back">←</button>
+                <div id="chat-avatar" class="avatar avatar-md"></div>
+                <div id="chat-info">
+                    <div id="chat-name-display">Room Name</div>
+                    <div id="online-count">0 online</div>
+                </div>
+                <button id="toggle-users-btn" class="icon-btn" title="Show Members">👥</button>
+            </div>
+
+            <!-- Collapsible panel listing who is online in this room -->
+            <div id="users-panel" class="hidden">
+                <div class="users-panel-title">Online Members</div>
+                <!-- JavaScript fills this with user rows -->
+                <div id="userList"></div>
+            </div>
+
+            <!-- Scrollable message history — JavaScript adds bubbles here -->
+            <div id="messages"></div>
+
+            <!-- Bottom input bar: type and send messages -->
+            <div class="input-area">
+                <input id="messageInput" type="text" placeholder="Type a message..." autocomplete="off">
+                <button id="sendButton" class="send-btn" title="Send">➤</button>
+            </div>
+
+        </div>
     </div>
 
 </div>
 
-<!-- Socket.IO client — automatically served by the server -->
+<!-- Socket.IO client — automatically served by the Node.js server -->
 <script src="/socket.io/socket.io.js"></script>
 
-<!-- Load our frontend JavaScript (placed at the bottom so HTML loads first) -->
+<!-- Our frontend logic — loaded last so all HTML elements exist first -->
 <script src="script.js"></script>
-
 </body>
 </html>
