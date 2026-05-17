@@ -1,3 +1,6 @@
+# Auto-generated data folder (rooms and messages saved to disk)
+data/
+
 # Logs
 logs
 *.log
