@@ -1,72 +1,110 @@
 /* ============================================================
    Quantum-Link — Stylesheet
-   Dark theme using shades of slate and blue.
+   WhatsApp-inspired dark theme.
    ============================================================ */
 
-/* --- Base Styles --- */
+
+/* ============================================================
+   CSS VARIABLES (Custom Properties)
+   Named colours we reuse everywhere.
+   Change one value here and it updates across the whole app!
+   ============================================================ */
+
+:root {
+    --bg-darkest:   #0b141a;   /* darkest background — the chat message area */
+    --bg-sidebar:   #111b21;   /* left sidebar background */
+    --bg-panel:     #202c33;   /* headers, panels, received message bubbles */
+    --bg-input:     #2a3942;   /* text input fields and hover states */
+    --bg-sent:      #005c4b;   /* your outgoing message bubbles (dark green) */
+    --color-green:  #00a884;   /* brand accent colour (teal/WhatsApp green) */
+    --color-text:   #e9edef;   /* main readable text */
+    --color-muted:  #8696a0;   /* secondary text: timestamps, placeholders */
+    --color-border: #2a3942;   /* divider lines between elements */
+    --sidebar-w:    360px;     /* width of the left sidebar */
+}
+
+
+/* ============================================================
+   RESET & BASE STYLES
+   Remove browser defaults so we control every pixel.
+   ============================================================ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;   /* padding doesn't add to an element's total size */
+}
 
 body {
-    margin: 0;
-    font-family: "Segoe UI", Roboto, Arial, sans-serif;
-    background: #0f172a; /* deep slate background */
-    color: #e5e7eb;      /* light grey text */
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: var(--bg-darkest);
+    color: var(--color-text);
     height: 100vh;
-    overflow: hidden;    /* prevent the whole page from scrolling */
+    overflow: hidden;         /* nothing scrolls at the page level */
+}
+
+/* Utility class: hides an element completely */
+.hidden {
+    display: none !important;
 }
 
 
 /* ============================================================
    USERNAME MODAL
-   Full-screen overlay shown to new users before they enter.
-   Sits on top of everything using position: fixed.
+   A centred card that floats over the whole screen on first visit.
    ============================================================ */
 
 .modal-overlay {
     position: fixed;
-    inset: 0;                    /* stretch to fill the whole screen */
+    inset: 0;                        /* covers the entire screen */
     background: rgba(0, 0, 0, 0.75);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100;                /* always on top */
+    z-index: 100;                    /* always on top of everything */
 }
 
 .modal-card {
-    background: #1f2937;
-    border: 1px solid #374151;
+    background: var(--bg-panel);
     border-radius: 16px;
-    padding: 40px;
-    width: 360px;
+    padding: 40px 32px;
+    width: 90%;
+    max-width: 380px;
     text-align: center;
     display: flex;
     flex-direction: column;
     gap: 14px;
 }
 
+/* The ⚡ emoji at the top of the modal */
+.modal-logo {
+    font-size: 52px;
+}
+
 .modal-card h2 {
-    margin: 0;
-    font-size: 22px;
-    color: #f9fafb;
+    font-size: 24px;
+    color: var(--color-green);
 }
 
 .modal-card p {
-    margin: 0;
-    color: #9ca3af;
     font-size: 14px;
+    color: var(--color-muted);
 }
 
 .modal-card input {
-    padding: 12px;
+    padding: 12px 16px;
     border-radius: 8px;
-    border: 1px solid #374151;
-    background: #111827;
-    color: #e5e7eb;
+    border: 1px solid transparent;
+    background: var(--bg-input);
+    color: var(--color-text);
     font-size: 15px;
     outline: none;
+    transition: border-color 0.2s;
 }
 
+/* Green border glow when the input is focused */
 .modal-card input:focus {
-    border-color: #2563eb;
+    border-color: var(--color-green);
 }
 
 .modal-card button {
@@ -74,287 +112,553 @@ body {
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    background: #2563eb;
+    background: var(--color-green);
     color: white;
     font-size: 15px;
-    transition: background 0.2s;
+    font-weight: 600;
+    transition: opacity 0.2s;
 }
 
 .modal-card button:hover {
-    background: #1d4ed8;
+    opacity: 0.88;
 }
 
 
 /* ============================================================
    APP LAYOUT
-   Three-column layout: sidebar | chat area | users panel.
-   Uses flexbox so they sit side by side and fill the viewport.
+   Two-column flex layout filling the full viewport height.
    ============================================================ */
 
 .app {
     display: flex;
     height: 100vh;
+    overflow: hidden;
+    position: relative;   /* needed so mobile absolute-positioned panels anchor here */
 }
 
 
 /* ============================================================
-   SIDEBAR
-   Fixed-width column on the left showing chats and buttons.
+   LEFT SIDEBAR
+   Fixed-width panel with the room list and action buttons.
    ============================================================ */
 
-.sidebar {
-    width: 220px;
-    background: #020600;
-    border-right: 1px solid #1f2937;
-    padding: 15px;
+#sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    background: var(--bg-sidebar);
     display: flex;
     flex-direction: column;
+    border-right: 1px solid var(--color-border);
+    overflow: hidden;
 }
 
-.sidebar h2 {
-    margin: 10px 0 20px;
-    font-size: 18px;
-    color: #f9fafb;
+/* ---- Sidebar Header Bar ---- */
+/* Shows the current user's avatar, name, and a "Create" button */
+#sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--bg-panel);
+    min-height: 60px;
+    flex-shrink: 0;       /* never shrink — always visible */
 }
 
-/* "Create Chat" and "Join Chat" buttons */
-.sidebar button {
-    margin-bottom: 10px;
-    padding: 10px;
+/* The username label next to the avatar */
+#my-username {
+    flex: 1;              /* takes all remaining horizontal space */
+    font-weight: 600;
+    font-size: 16px;
+}
+
+/* ---- Search Bar ---- */
+#search-bar {
+    padding: 8px 12px;
+    flex-shrink: 0;
+}
+
+#searchInput {
+    width: 100%;
+    padding: 9px 16px;
+    background: var(--bg-input);
     border: none;
     border-radius: 8px;
-    cursor: pointer;
-    background: #1f2937;
-    color: #e5e7eb;
-    transition: background 0.2s;
+    color: var(--color-text);
+    font-size: 14px;
+    outline: none;
 }
 
-.sidebar button:hover {
-    background: #374151;
+#searchInput::placeholder {
+    color: var(--color-muted);
 }
 
-
-/* ============================================================
-   CHAT LIST
-   The scrollable list of chat rooms in the sidebar.
-   ============================================================ */
-
+/* ---- Chat List (scrollable) ---- */
 #chatList {
-    margin-top: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    flex: 1;             /* fills all remaining sidebar height */
     overflow-y: auto;
 }
 
-/* One row in the chat list */
+/* Custom thin scrollbar for the chat list and messages area */
+#chatList::-webkit-scrollbar,
+#messages::-webkit-scrollbar {
+    width: 5px;
+}
+
+#chatList::-webkit-scrollbar-thumb,
+#messages::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 3px;
+}
+
+/* ---- One Row in the Chat List ---- */
 .chat-item {
-    padding: 10px;
-    border-radius: 8px;
-    background: #1f2937;
-    cursor: pointer;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    transition: background 0.2s;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--color-border);
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
 }
 
 .chat-item:hover {
-    background: #374151;
+    background: var(--bg-input);
 }
 
-/* Highlight the chat that is currently open */
-.active-chat {
-    background: #2563eb;
+/* The room that is currently open gets a darker highlight */
+.chat-item.active-chat {
+    background: var(--color-border);
 }
 
-/* Small "X" delete button inside each chat item */
+/* Text info inside each chat item: room name + subtitle */
+.chat-item-info {
+    flex: 1;
+    overflow: hidden;     /* prevent text from pushing the delete button away */
+}
+
+.chat-item-name {
+    font-size: 15px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;   /* "long room name..." */
+}
+
+.chat-item-preview {
+    font-size: 12px;
+    color: var(--color-muted);
+    margin-top: 2px;
+}
+
+/* Delete button — only appears when hovering the row */
 .delete-chat-btn {
-    background: transparent;
+    background: none;
     border: none;
-    color: #f87171;
-    font-size: 14px;
+    color: var(--color-muted);
+    font-size: 15px;
     cursor: pointer;
-    padding: 0 4px;
+    padding: 4px 6px;
+    border-radius: 50%;
+    opacity: 0;                  /* invisible by default */
+    transition: opacity 0.2s, color 0.2s;
+    flex-shrink: 0;
+}
+
+.chat-item:hover .delete-chat-btn {
+    opacity: 1;                  /* becomes visible on row hover */
 }
 
 .delete-chat-btn:hover {
-    color: #ef4444;
+    color: #ef4444;              /* turns red when you hover the button itself */
+}
+
+/* Empty state message when search has no results */
+.chat-list-empty {
+    padding: 20px 16px;
+    font-size: 13px;
+    color: var(--color-muted);
+    text-align: center;
+}
+
+/* ---- Sidebar Footer ---- */
+/* Holds the "Join a Room" button at the very bottom of the sidebar */
+#sidebar-footer {
+    padding: 12px;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--color-border);
+    flex-shrink: 0;
+}
+
+#joinChatButton {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid var(--color-green);
+    border-radius: 8px;
+    color: var(--color-green);
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#joinChatButton:hover {
+    background: rgba(0, 168, 132, 0.1);
 }
 
 
 /* ============================================================
-   CHAT AREA
-   The main panel in the center — grows to fill remaining space.
+   AVATAR CIRCLES
+   Coloured round circles showing the initials of a name.
+   Used for users and chat rooms.
    ============================================================ */
 
-.chat-container {
+.avatar {
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    user-select: none;     /* can't accidentally select the letters */
+}
+
+/* Size variants */
+.avatar-sm { width: 40px; height: 40px; font-size: 16px; }
+.avatar-md { width: 42px; height: 42px; font-size: 17px; }
+.avatar-xs { width: 30px; height: 30px; font-size: 12px; }
+
+
+/* ============================================================
+   ICON BUTTONS
+   Small round buttons used for the + button, back button, etc.
+   ============================================================ */
+
+.icon-btn {
+    background: none;
+    border: none;
+    color: var(--color-muted);
+    cursor: pointer;
+    font-size: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s, background 0.2s;
+    flex-shrink: 0;
+}
+
+.icon-btn:hover {
+    color: var(--color-text);
+    background: var(--bg-input);
+}
+
+
+/* ============================================================
+   MAIN CHAT AREA (Right Column)
+   Fills all remaining space to the right of the sidebar.
+   ============================================================ */
+
+#chat-area {
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 15px;
-    background: #111827;
-    min-width: 0;          /* prevents flex child from overflowing */
+    overflow: hidden;
+    min-width: 0;     /* prevents flex child from overflowing its parent */
 }
 
-/* Label at the top showing which chat is open */
-#currentChatDisplay {
-    padding: 10px;
-    background: #111827;
-    border: 1px solid #1f2937;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    color: #e5e7eb;
+/* ---- Welcome Screen ---- */
+/* Shown before the user has selected a room */
+#welcome-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    color: var(--color-muted);
+    background: var(--bg-darkest);
+}
+
+.welcome-icon {
+    font-size: 72px;
+}
+
+#welcome-screen h2 {
+    font-size: 26px;
+    color: var(--color-text);
+}
+
+#welcome-screen p {
+    font-size: 14px;
+}
+
+/* ---- Active Chat View ---- */
+/* Shown once a room has been joined */
+#active-chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Chat top header bar */
+#chat-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: var(--bg-panel);
+    min-height: 60px;
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+}
+
+/* Room name text in the header */
+#chat-name-display {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* "3 online" subtitle under the room name */
+#online-count {
+    font-size: 12px;
+    color: var(--color-green);
+}
+
+/* Container for room name + online count */
+#chat-info {
+    flex: 1;
+}
+
+/* Back button — only shown on mobile (hidden on desktop below) */
+.back-btn {
+    display: none;
+    font-size: 22px;
+}
+
+/* ---- Online Users Panel (collapsible) ---- */
+/* Toggled by clicking the 👥 button in the header */
+#users-panel {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--color-border);
+    padding: 10px 16px;
+    max-height: 160px;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.users-panel-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-muted);
+    margin-bottom: 8px;
+}
+
+/* One row in the users panel */
+.user-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 14px;
+}
+
+/* Small green dot = online indicator */
+.online-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-green);
     flex-shrink: 0;
 }
 
 
 /* ============================================================
-   MESSAGES
-   Scrollable area where chat messages appear.
+   MESSAGES AREA
+   The scrollable feed of chat bubbles.
    ============================================================ */
 
 #messages {
     flex: 1;
     overflow-y: auto;
-    padding: 15px;
-    background: #111827;
-    border-radius: 10px;
-    border: 1px solid #1f2937;
+    padding: 12px 8%;     /* wide side padding gives a WhatsApp-like centred feel */
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 3px;
+    background: var(--bg-darkest);
 }
 
-/* Individual message bubble */
+/* Wrapper around each bubble — controls left/right alignment */
 .message {
-    padding: 10px 14px;
-    border-radius: 10px;
-    max-width: 65%;
-    word-wrap: break-word;
-}
-
-/* Alternate colours to visually separate different users */
-.message:nth-child(odd) {
-    background: #1f2937;         /* dark grey */
-    align-self: flex-start;
-}
-
-.message:nth-child(even) {
-    background: #2563eb;         /* blue */
-    align-self: flex-end;
-}
-
-/* Header row inside each bubble: username + timestamp */
-.message-header {
     display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 10px;
-    margin-bottom: 4px;
+    flex-direction: column;
+    max-width: 65%;
+    margin-bottom: 2px;
 }
 
-.message-user {
+/* Your own messages appear on the right side */
+.message.sent {
+    align-self: flex-end;
+    align-items: flex-end;
+}
+
+/* Other people's messages appear on the left side */
+.message.received {
+    align-self: flex-start;
+    align-items: flex-start;
+}
+
+/* Sender name shown above received (not your own) messages */
+.message-sender {
+    font-size: 12px;
     font-weight: 600;
-    font-size: 13px;
-    color: #f9fafb;
+    margin-bottom: 2px;
+    padding-left: 4px;
+    /* colour is set dynamically by JavaScript to match their avatar */
 }
 
-/* Timestamp — small and muted so it doesn't distract */
+/* The actual coloured bubble */
+.message-bubble {
+    padding: 7px 12px 20px 12px;   /* extra bottom padding makes room for timestamp */
+    border-radius: 8px;
+    position: relative;
+    word-wrap: break-word;
+    line-height: 1.5;
+    font-size: 14.5px;
+    min-width: 72px;
+}
+
+/* Sent bubble: dark green, with a slight flat corner on the top-right */
+.message.sent .message-bubble {
+    background: var(--bg-sent);
+    border-top-right-radius: 2px;   /* the "tail" direction hint */
+}
+
+/* Received bubble: dark panel colour, flat corner on top-left */
+.message.received .message-bubble {
+    background: var(--bg-panel);
+    border-top-left-radius: 2px;
+}
+
+/* Timestamp sits in the bottom-right corner of the bubble */
 .message-time {
     font-size: 11px;
-    color: #9ca3af;
+    color: rgba(255, 255, 255, 0.5);
+    position: absolute;
+    bottom: 5px;
+    right: 8px;
     white-space: nowrap;
-}
-
-.message-body {
-    font-size: 14px;
-    line-height: 1.4;
 }
 
 
 /* ============================================================
-   INPUT AREA
-   The bar at the bottom with the text field and Send button.
+   MESSAGE INPUT BAR
+   The bar at the very bottom where you type and send messages.
    ============================================================ */
 
 .input-area {
     display: flex;
+    align-items: center;
     gap: 10px;
-    margin-top: 10px;
+    padding: 10px 16px;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--color-border);
     flex-shrink: 0;
 }
 
 #messageInput {
     flex: 1;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #1f2937;
-    background: #111827;
-    color: #e5e7eb;
+    padding: 10px 18px;
+    border-radius: 24px;     /* pill shape like WhatsApp */
+    border: none;
+    background: var(--bg-input);
+    color: var(--color-text);
+    font-size: 15px;
     outline: none;
 }
 
-#messageInput:focus {
-    border-color: #2563eb;
+#messageInput::placeholder {
+    color: var(--color-muted);
 }
 
-#sendButton {
-    padding: 10px 16px;
+/* Round green send button */
+.send-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--color-green);
     border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    background: #2563eb;
     color: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
     transition: background 0.2s;
 }
 
-#sendButton:hover {
-    background: #1d4ed8;
+.send-btn:hover {
+    background: #008f70;
 }
 
 
 /* ============================================================
-   ONLINE USERS PANEL
-   Narrow column on the right showing who is in the room now.
+   RESPONSIVE MOBILE LAYOUT
+   On small screens, both panels go full-width and only one
+   is visible at a time — they slide left/right like native apps.
    ============================================================ */
 
-.users-panel {
-    width: 160px;
-    background: #0a0f1e;
-    border-left: 1px solid #1f2937;
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-}
+@media (max-width: 768px) {
 
-.users-panel h3 {
-    margin: 10px 0 14px;
-    font-size: 14px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #6b7280;
-}
+    /* Both panels sit absolutely on top of each other */
+    #sidebar,
+    #chat-area {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        transition: transform 0.3s ease;
+    }
 
-/* One username row in the online list */
-.user-item {
-    padding: 6px 8px;
-    border-radius: 6px;
-    font-size: 13px;
-    color: #d1d5db;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
+    /* Chat area starts pushed off-screen to the right */
+    #chat-area {
+        transform: translateX(100%);
+    }
 
-/* Green dot before each online username */
-.user-item::before {
-    content: "";
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #22c55e;   /* green */
-    flex-shrink: 0;
+    /*
+        When JavaScript adds the class "chat-open" to .app:
+          - Sidebar slides out to the left
+          - Chat area slides in from the right
+    */
+    .app.chat-open #sidebar {
+        transform: translateX(-100%);
+    }
+
+    .app.chat-open #chat-area {
+        transform: translateX(0);
+    }
+
+    /* Show the back arrow on mobile (hidden on desktop) */
+    .back-btn {
+        display: flex !important;
+    }
+
+    /* Bubbles can use more width on a narrow screen */
+    .message {
+        max-width: 85%;
+    }
+
+    /* Narrower side padding on small screens */
+    #messages {
+        padding: 12px 4%;
+    }
 }
