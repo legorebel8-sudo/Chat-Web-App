@@ -10,12 +10,30 @@
 <body>
 
 <!--
-    APP LAYOUT
-    The page is split into two side-by-side sections:
-      - Left:  Sidebar  (chat list + action buttons)
-      - Right: Chat area (messages + input box)
+    USERNAME MODAL
+    This overlay appears when the user first visits the app.
+    JavaScript hides it once a username has been chosen.
+    It sits on top of everything via CSS position: fixed.
 -->
-<div class="app">
+<div id="usernameModal" class="modal-overlay">
+    <div class="modal-card">
+        <h2>Welcome to Quantum-Link</h2>
+        <p>Choose a username to get started.</p>
+        <input id="usernameInput" type="text" placeholder="Enter your username..." maxlength="20">
+        <button id="usernameSubmit">Join Chat</button>
+    </div>
+</div>
+
+
+<!--
+    APP LAYOUT
+    Hidden until a username is set (shown by JavaScript).
+    Split into three columns:
+      - Left:   Sidebar  (chat list + buttons)
+      - Center: Chat area (messages + input)
+      - Right:  Users panel (who is online in this room)
+-->
+<div class="app" id="app">
 
     <!-- =====================
          LEFT SIDEBAR
@@ -54,9 +72,20 @@
 
     </div>
 
+    <!-- =====================
+         ONLINE USERS PANEL
+         Shows who is currently in this chat room.
+         JavaScript updates this list whenever someone joins or leaves.
+    ===================== -->
+    <div class="users-panel">
+        <h3>Online</h3>
+        <!-- JavaScript fills this div with the list of usernames -->
+        <div id="userList"></div>
+    </div>
+
 </div>
 
-<!-- Socket.IO client — automatically served by the server, lets the browser talk in real time -->
+<!-- Socket.IO client — automatically served by the server -->
 <script src="/socket.io/socket.io.js"></script>
 
 <!-- Load our frontend JavaScript (placed at the bottom so HTML loads first) -->

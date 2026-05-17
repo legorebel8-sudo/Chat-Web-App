@@ -2,9 +2,10 @@
 // Quantum-Link — Frontend Logic
 // ============================================================
 // This file controls everything the user interacts with:
-//   - Asking for a username
+//   - Showing the username modal on first visit
 //   - Creating and joining chat rooms
 //   - Sending and displaying messages in real time via Socket.IO
+//   - Showing who is currently online in each room
 // ============================================================
 
 
@@ -12,8 +13,7 @@
 // SOCKET.IO CONNECTION
 // ============================================================
 // io() connects this browser tab to the server.
-// All real-time communication (sending messages, joining rooms)
-// goes through this single "socket" object.
+// All real-time communication goes through this socket object.
 
 const socket = io();
 
@@ -21,7 +21,7 @@ const socket = io();
 // ============================================================
 // DOM ELEMENTS
 // ============================================================
-// These variables grab the HTML elements we need to read or update.
+// Grab all the HTML elements we need to read or update.
 
 const sendButton         = document.getElementById("sendButton");
 const messageInput       = document.getElementById("messageInput");
@@ -30,16 +30,19 @@ const createChatButton   = document.getElementById("createChatButton");
 const joinChatButton     = document.getElementById("joinChatButton");
 const chatList           = document.getElementById("chatList");
 const currentChatDisplay = document.getElementById("currentChatDisplay");
+const userListDiv        = document.getElementById("userList");
+const usernameModal      = document.getElementById("usernameModal");
+const usernameInput      = document.getElementById("usernameInput");
+const usernameSubmit     = document.getElementById("usernameSubmit");
+const appDiv             = document.getElementById("app");
 
 
 // ============================================================
 // APP STATE
 // ============================================================
-// All the data the app needs to run is stored in one object.
-// This makes it easy to see everything in one place.
 
 const state = {
-    currentChat: "Example Chat",  // which chat room is open right now
+    currentChat: "Example Chat",  // which room is open right now
     username:    null,            // the user's chosen display name
 };
 
@@ -49,71 +52,93 @@ const state = {
 // ============================================================
 
 function init() {
-    // Step 1: Get or ask for the username (saved in localStorage)
-    state.username = loadUsername();
-
-    // Step 2: Wire up all the button click handlers
+    // Wire up button click handlers and keyboard shortcuts
     setupEventListeners();
 
-    // Step 3: Wire up all the Socket.IO event listeners
+    // Wire up all Socket.IO event listeners
     setupSocketListeners();
+
+    // Check if the user already set a username in a previous visit
+    const storedUsername = localStorage.getItem("username");
+
+    if (storedUsername) {
+        // Returning user — skip the modal and go straight to the app
+        state.username = storedUsername;
+        usernameModal.style.display = "none";
+        appDiv.style.display = "flex";
+    } else {
+        // New user — show the modal and hide the app until they choose a name
+        usernameModal.style.display = "flex";
+        appDiv.style.display = "none";
+    }
 }
 
 
 // ============================================================
-// USERNAME
+// USERNAME MODAL
 // ============================================================
+// Instead of using the browser's built-in prompt() dialog,
+// we show a styled card overlay that matches the app's design.
 
-function loadUsername() {
-    // Check if the user already set a name in a previous visit
-    const storedName = localStorage.getItem("username");
-    if (storedName) return storedName;
+function handleUsernameSubmit() {
+    const input = usernameInput.value.trim();
 
-    // First time — ask the user to pick a name
-    const chosenName = prompt("Choose your username (you'll only be asked once):");
+    // Don't allow an empty name
+    if (!input) {
+        usernameInput.placeholder = "Please enter a name!";
+        return;
+    }
 
-    // If they clicked Cancel or left it blank, fall back to "Guest"
-    const username = chosenName ? chosenName.trim() : "Guest";
+    state.username = input;
 
-    // Save it so we never ask again
-    localStorage.setItem("username", username);
-    return username;
+    // Save it to localStorage so we never ask again
+    localStorage.setItem("username", input);
+
+    // Hide the modal and show the main app
+    usernameModal.style.display = "none";
+    appDiv.style.display = "flex";
+
+    // If the socket is already connected, send the startup events now.
+    // If not yet connected, the "connect" handler below will do it.
+    if (socket.connected) {
+        socket.emit("set username", state.username);
+        socket.emit("get rooms");
+        socket.emit("join room", { name: "Example Chat", password: "" });
+    }
 }
 
 
 // ============================================================
 // SOCKET.IO — SERVER EVENT LISTENERS
 // ============================================================
-// These functions run when the server sends something to us.
 
 function setupSocketListeners() {
 
     // --- Connected to the server ---
-    // As soon as we connect, tell the server our username and
-    // ask for the current list of rooms.
+    // Fires when the socket first connects (or reconnects).
     socket.on("connect", () => {
+        // Only proceed once the user has chosen a username
+        if (!state.username) return;
+
         socket.emit("set username", state.username);
         socket.emit("get rooms");
-        // Auto-join Example Chat so messages load immediately on page open
         socket.emit("join room", { name: "Example Chat", password: "" });
     });
 
     // --- Room list update ---
-    // The server sends us the list of room names whenever it changes
-    // (on connect, after a room is created, etc.).
+    // The server sends the full list of room names whenever it changes.
     socket.on("room list", (roomNames) => {
         renderChatList(roomNames);
     });
 
     // --- Successfully joined a room ---
     // The server confirms we joined and sends the full message history.
-    // data = { name: "Room Name", messages: [...] }
+    // data = { name: "Room Name", messages: [ { user, text, time }, ... ] }
     socket.on("room joined", (data) => {
-        // Switch the chat area to this room
         state.currentChat = data.name;
         currentChatDisplay.textContent = `Current Chat: ${data.name}`;
 
-        // Clear old messages and display this room's history
+        // Clear old messages and show this room's history
         messagesDiv.innerHTML = "";
         data.messages.forEach((message) => {
             displayMessage(message);
@@ -121,13 +146,18 @@ function setupSocketListeners() {
     });
 
     // --- Incoming chat message ---
-    // The server broadcasts this whenever anyone in the room sends a message.
-    // data = { room: "Room Name", message: "username: text" }
+    // The server broadcasts this whenever anyone sends a message.
+    // data = { room: "Room Name", message: { user, text, time } }
     socket.on("chat message", (data) => {
-        // Only display the message if it belongs to the room we're looking at
         if (data.room === state.currentChat) {
             displayMessage(data.message);
         }
+    });
+
+    // --- Online user list ---
+    // The server sends this when someone joins or leaves the room.
+    socket.on("user list", (users) => {
+        renderUserList(users);
     });
 
     // --- Room error ---
@@ -153,25 +183,20 @@ function setupSocketListeners() {
 // ============================================================
 
 function renderChatList(roomNames) {
-    // Clear the sidebar and rebuild it from the server's room list
     chatList.innerHTML = "";
-
     roomNames.forEach((chatName) => {
         chatList.appendChild(createChatListItem(chatName));
     });
 }
 
 function createChatListItem(chatName) {
-    // Build the container div for one chat in the list
     const chatItem = document.createElement("div");
     chatItem.classList.add("chat-item");
 
-    // Highlight it blue if this is the currently open chat
     if (chatName === state.currentChat) {
         chatItem.classList.add("active-chat");
     }
 
-    // The chat name — clicking it tries to join the room
     const nameSpan = document.createElement("span");
     nameSpan.textContent = chatName;
     nameSpan.style.cursor = "pointer";
@@ -179,7 +204,6 @@ function createChatListItem(chatName) {
 
     chatItem.append(nameSpan);
 
-    // Add a delete button for every room except "Example Chat"
     if (chatName !== "Example Chat") {
         chatItem.appendChild(createDeleteChatButton(chatName));
     }
@@ -188,23 +212,34 @@ function createChatListItem(chatName) {
 }
 
 function createDeleteChatButton(chatName) {
-    // Build the small red "X" button shown next to each room name
     const button = document.createElement("button");
     button.textContent = "X";
     button.classList.add("delete-chat-btn");
 
     button.addEventListener("click", (event) => {
-        // Stop the click from also triggering the join-room handler
         event.stopPropagation();
-
-        // Ask the user to confirm before permanently deleting
         if (!confirm(`Delete chat "${chatName}"?`)) return;
-
-        // Tell the server to delete the room
         socket.emit("delete room", { name: chatName });
     });
 
     return button;
+}
+
+
+// ============================================================
+// ONLINE USERS PANEL
+// ============================================================
+
+function renderUserList(users) {
+    // Clear the panel and rebuild it from the server's list
+    userListDiv.innerHTML = "";
+
+    users.forEach((username) => {
+        const item = document.createElement("div");
+        item.classList.add("user-item");
+        item.textContent = username;
+        userListDiv.appendChild(item);
+    });
 }
 
 
@@ -214,32 +249,27 @@ function createDeleteChatButton(chatName) {
 
 function handleCreateChat() {
     const name = prompt("Enter a name for the new chat:");
-    if (!name) return; // user pressed Cancel
+    if (!name) return;
 
-    // Every new room needs a password to keep it private
     const password = prompt("Set a password for this chat:");
     if (!password) {
         alert("A password is required!");
         return;
     }
 
-    // Ask the server to create the room
     socket.emit("create room", { name, password });
 }
 
 function handleJoinChat(chatName) {
-    // If no name was passed in, ask the user to type one
     const name = chatName || prompt("Enter the name of the chat you want to join:");
-    if (!name) return; // user pressed Cancel
+    if (!name) return;
 
-    // Example Chat has no password — all other rooms do
     let password = "";
     if (name !== "Example Chat") {
         password = prompt(`Enter the password for "${name}" (leave blank if none):`);
-        if (password === null) return; // user pressed Cancel
+        if (password === null) return;
     }
 
-    // Ask the server to add us to the room
     socket.emit("join room", { name, password });
 }
 
@@ -250,25 +280,42 @@ function handleJoinChat(chatName) {
 
 function handleSendMessage() {
     const text = messageInput.value.trim();
-    if (!text) return; // don't send empty messages
+    if (!text) return;
 
-    // Format: "username: message text"
-    const message = `${state.username}: ${text}`;
+    // Send just the text — the server adds the username and timestamp
+    socket.emit("chat message", { room: state.currentChat, text });
 
-    // Send the message to the server — it will broadcast it to
-    // everyone in the room (including us) via the "chat message" event.
-    socket.emit("chat message", { room: state.currentChat, message });
-
-    // Clear the text field so the user can type the next message
     messageInput.value = "";
 }
 
 function displayMessage(message) {
-    // Create a new bubble div and add it to the messages area
-    const messageElement = document.createElement("div");
-    messageElement.classList.add("message");
-    messageElement.textContent = message;
-    messagesDiv.appendChild(messageElement);
+    // Create the outer bubble container
+    const bubble = document.createElement("div");
+    bubble.classList.add("message");
+
+    // Header row: username on the left, timestamp on the right
+    const header = document.createElement("div");
+    header.classList.add("message-header");
+
+    const userSpan = document.createElement("span");
+    userSpan.classList.add("message-user");
+    userSpan.textContent = message.user;
+
+    const timeSpan = document.createElement("span");
+    timeSpan.classList.add("message-time");
+    timeSpan.textContent = message.time;
+
+    header.appendChild(userSpan);
+    header.appendChild(timeSpan);
+
+    // The actual message text
+    const body = document.createElement("div");
+    body.classList.add("message-body");
+    body.textContent = message.text;
+
+    bubble.appendChild(header);
+    bubble.appendChild(body);
+    messagesDiv.appendChild(bubble);
 
     // Scroll down so the newest message is always visible
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -278,16 +325,22 @@ function displayMessage(message) {
 // ============================================================
 // EVENT LISTENERS
 // ============================================================
-// Connect all buttons and keyboard shortcuts to their functions.
 
 function setupEventListeners() {
+    // Main app buttons
     createChatButton.addEventListener("click", handleCreateChat);
     joinChatButton.addEventListener("click", () => handleJoinChat(null));
     sendButton.addEventListener("click", handleSendMessage);
 
-    // Allow pressing Enter to send a message (same as clicking Send)
-    messageInput.addEventListener("keydown", function (event) {
+    // Enter key sends a message
+    messageInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter") handleSendMessage();
+    });
+
+    // Username modal: button click and Enter key
+    usernameSubmit.addEventListener("click", handleUsernameSubmit);
+    usernameInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") handleUsernameSubmit();
     });
 }
 
