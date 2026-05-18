@@ -15,7 +15,7 @@
     --bg-sidebar:   #111b21;   /* left sidebar background */
     --bg-panel:     #202c33;   /* headers, panels, received message bubbles */
     --bg-input:     #2a3942;   /* text input fields and hover states */
-    --bg-sent:      #005c4b;   /* your outgoing message bubbles (dark green) */
+    --bg-sent:      #1a3a6b;   /* your outgoing message bubbles (dark blue) */
     --color-green:  #00a884;   /* brand accent colour (teal/WhatsApp green) */
     --color-text:   #e9edef;   /* main readable text */
     --color-muted:  #8696a0;   /* secondary text: timestamps, placeholders */
