@@ -7,29 +7,32 @@
 
     <!-- Link to our stylesheet -->
     <link rel="stylesheet" href="style.css">
+
+    <!--
+        AUTH CHECK
+        Before the page finishes loading, check if the user is logged in.
+        If not, redirect them to the login page immediately.
+        This prevents someone from typing http://localhost:3000 directly
+        and bypassing the login screen.
+    -->
+    <script>
+        fetch("/api/me")
+            .then((res) => {
+                if (!res.ok) {
+                    // Not logged in — send to login page
+                    window.location.href = "/login.html";
+                }
+            })
+            .catch(() => {
+                // Server unreachable — still send to login page
+                window.location.href = "/login.html";
+            });
+    </script>
 </head>
 <body>
 
 <!--
-    USERNAME MODAL
-    This full-screen overlay is shown when the user first visits the app.
-    JavaScript hides it once they submit their name.
-    It sits on top of everything using position: fixed.
--->
-<div id="usernameModal" class="modal-overlay">
-    <div class="modal-card">
-        <div class="modal-logo">⚡</div>
-        <h2>Quantum Link</h2>
-        <p>Enter your name to start chatting</p>
-        <input id="usernameInput" type="text" placeholder="Your name..." maxlength="20">
-        <button id="usernameSubmit">Start Chatting</button>
-    </div>
-</div>
-
-
-<!--
     MAIN APP
-    Hidden at first — revealed by JavaScript after the user picks a name.
     Two-column layout:
       Left  → Sidebar (chat list, search, buttons)
       Right → Chat area (messages + input)
@@ -47,6 +50,12 @@
             <div id="my-avatar" class="avatar avatar-sm"></div>
             <span id="my-username">You</span>
             <button id="createChatButton" class="icon-btn" title="Create New Room">＋</button>
+            <!--
+                LOGOUT BUTTON
+                Clicking this sends a logout request to the server,
+                then redirects to the login page.
+            -->
+            <button id="logoutButton" class="icon-btn" title="Logout">⏻</button>
         </div>
 
         <!-- Search box — filters the room list as you type -->
