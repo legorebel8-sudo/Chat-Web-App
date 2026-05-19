@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum-Link — Login</title>
+
+    <!-- Shared auth page styles -->
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+
+<!--
+    LOGIN PAGE
+    This is the first page users see if they are not logged in.
+    They enter their username and password here.
+    The form data is sent to the server via fetch() in login.js.
+-->
+
+<div class="auth-card">
+
+    <!-- Logo and title at the top of the card -->
+    <div class="auth-logo">⚡</div>
+    <h2>Quantum-Link</h2>
+    <p class="auth-subtitle">Sign in to start chatting</p>
+
+    <!--
+        LOGIN FORM
+        We use id="loginForm" so JavaScript can easily find this element.
+        The "action" and "method" are handled by JavaScript (not by HTML form submit)
+        so the page doesn't reload when the user clicks the button.
+    -->
+    <form id="loginForm">
+
+        <!-- Username field -->
+        <label for="username">Username</label>
+        <input
+            type="text"
+            id="username"
+            name="username"
+            placeholder="Enter your username"
+            maxlength="30"
+            autocomplete="username"
+            required
+        >
+
+        <!-- Password field -->
+        <label for="password">Password</label>
+        <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+            required
+        >
+
+        <!-- Submit button -->
+        <button type="submit" class="auth-btn" id="loginBtn">Login</button>
+
+    </form>
+
+    <!--
+        ERROR MESSAGE BOX
+        Hidden by default. JavaScript shows it and fills in the text
+        if the server says the login failed (wrong password, etc.).
+    -->
+    <div class="auth-error" id="errorMsg"></div>
+
+    <!-- Link to the register page -->
+    <p class="auth-footer">
+        Don't have an account? <a href="register.html">Register here</a>
+    </p>
+
+</div>
+
+<!-- Our login logic — loaded at the bottom so all HTML elements exist first -->
+<script src="login.js"></script>
+
+</body>
+</html>

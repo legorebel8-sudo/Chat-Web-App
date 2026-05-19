@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum-Link — Register</title>
+
+    <!-- Shared auth page styles -->
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+
+<!--
+    REGISTER PAGE
+    New users create their account here.
+    They must answer a secret security question correctly to register.
+    The question is fetched from the server — the answer stays server-side only.
+-->
+
+<div class="auth-card">
+
+    <!-- Logo and title -->
+    <div class="auth-logo">⚡</div>
+    <h2>Quantum-Link</h2>
+    <p class="auth-subtitle">Create a new account</p>
+
+    <!--
+        REGISTER FORM
+        JavaScript (register.js) sends the data to the server.
+        The page does not refresh when submitted.
+    -->
+    <form id="registerForm">
+
+        <!-- Username field -->
+        <label for="username">Username</label>
+        <input
+            type="text"
+            id="username"
+            name="username"
+            placeholder="Choose a username"
+            maxlength="30"
+            autocomplete="username"
+            required
+        >
+
+        <!-- Password field -->
+        <label for="password">Password</label>
+        <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="Choose a password"
+            autocomplete="new-password"
+            required
+        >
+
+        <!-- Confirm password field — must match the one above -->
+        <label for="confirmPassword">Confirm Password</label>
+        <input
+            type="password"
+            id="confirmPassword"
+            name="confirmPassword"
+            placeholder="Type your password again"
+            autocomplete="new-password"
+            required
+        >
+
+        <!--
+            SECURITY QUESTION
+            The question text is loaded from the server when the page opens.
+            JavaScript fills in the #securityQuestionText span below.
+        -->
+        <label>Security Question</label>
+        <div class="security-question-text" id="securityQuestionText">
+            Loading question...
+        </div>
+
+        <!-- The user types their answer here -->
+        <label for="securityAnswer">Your Answer</label>
+        <input
+            type="text"
+            id="securityAnswer"
+            name="securityAnswer"
+            placeholder="Type your answer"
+            autocomplete="off"
+            required
+        >
+
+        <!-- Submit button -->
+        <button type="submit" class="auth-btn" id="registerBtn">Create Account</button>
+
+    </form>
+
+    <!--
+        ERROR MESSAGE BOX
+        Hidden by default. Shown by JavaScript if something goes wrong
+        (wrong security answer, username taken, passwords don't match, etc.)
+    -->
+    <div class="auth-error" id="errorMsg"></div>
+
+    <!--
+        SUCCESS MESSAGE BOX
+        Shown briefly when the account is created successfully,
+        before the page redirects to the login page.
+    -->
+    <div class="auth-success" id="successMsg"></div>
+
+    <!-- Link back to login -->
+    <p class="auth-footer">
+        Already have an account? <a href="login.html">Login here</a>
+    </p>
+
+</div>
+
+<!-- Our register logic — loaded at the bottom so all HTML elements exist first -->
+<script src="register.js"></script>
+
+</body>
+</html>

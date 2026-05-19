@@ -1,0 +1,215 @@
+/* ============================================================
+   Quantum-Link — Auth Pages Stylesheet
+   Shared styles for login.html and register.html.
+   Uses the same dark colour palette as the main app.
+   ============================================================ */
+
+
+/* ============================================================
+   CSS VARIABLES
+   Same colour names as style.css so both pages look consistent.
+   ============================================================ */
+
+:root {
+    --bg-darkest:   #0b141a;
+    --bg-panel:     #202c33;
+    --bg-input:     #2a3942;
+    --color-green:  #00a884;
+    --color-text:   #e9edef;
+    --color-muted:  #8696a0;
+    --color-border: #2a3942;
+    --color-error:  #ef4444;
+}
+
+
+/* ============================================================
+   BASE RESET
+   ============================================================ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: var(--bg-darkest);
+    color: var(--color-text);
+    /* Centre the card on the screen both horizontally and vertically */
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* ============================================================
+   AUTH CARD
+   The white-ish box that holds the form.
+   ============================================================ */
+
+.auth-card {
+    background: var(--bg-panel);
+    border-radius: 12px;
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 400px;       /* never wider than 400 px */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Lightning-bolt logo at the top */
+.auth-logo {
+    font-size: 2.5rem;
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+/* App name heading */
+.auth-card h2 {
+    text-align: center;
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+    color: var(--color-text);
+}
+
+/* Subtitle line (e.g. "Sign in to continue") */
+.auth-subtitle {
+    text-align: center;
+    color: var(--color-muted);
+    font-size: 0.9rem;
+    margin-bottom: 28px;
+}
+
+
+/* ============================================================
+   FORM ELEMENTS
+   ============================================================ */
+
+/* Label above each input */
+.auth-card label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    margin-bottom: 6px;
+    margin-top: 16px;
+}
+
+/* Text inputs */
+.auth-card input[type="text"],
+.auth-card input[type="password"] {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    background: var(--bg-input);
+    color: var(--color-text);
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+/* Highlight the field that currently has focus */
+.auth-card input:focus {
+    border-color: var(--color-green);
+}
+
+/* Static text that shows the security question — not an input */
+.security-question-text {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    background: var(--bg-input);
+    color: var(--color-muted);
+    font-size: 0.9rem;
+    font-style: italic;
+    /* min-height so it doesn't collapse while the question loads */
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+}
+
+
+/* ============================================================
+   SUBMIT BUTTON
+   ============================================================ */
+
+.auth-btn {
+    width: 100%;
+    margin-top: 24px;
+    padding: 13px;
+    border: none;
+    border-radius: 8px;
+    background: var(--color-green);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.auth-btn:hover {
+    opacity: 0.88;
+}
+
+/* Slightly dimmed appearance while a request is in flight */
+.auth-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+
+/* ============================================================
+   ERROR / SUCCESS MESSAGES
+   ============================================================ */
+
+/* Shown below the button when something goes wrong */
+.auth-error {
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: var(--color-error);
+    font-size: 0.9rem;
+    text-align: center;
+    /* Hidden by default — JS makes it visible when needed */
+    display: none;
+}
+
+/* Success variant (green instead of red) */
+.auth-success {
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: rgba(0, 168, 132, 0.15);
+    border: 1px solid rgba(0, 168, 132, 0.4);
+    color: var(--color-green);
+    font-size: 0.9rem;
+    text-align: center;
+    display: none;
+}
+
+
+/* ============================================================
+   FOOTER LINK
+   "Don't have an account? Register" / "Already have one? Login"
+   ============================================================ */
+
+.auth-footer {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 0.88rem;
+    color: var(--color-muted);
+}
+
+.auth-footer a {
+    color: var(--color-green);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-footer a:hover {
+    text-decoration: underline;
+}
