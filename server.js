@@ -36,9 +36,19 @@ const bcrypt = require("bcryptjs");
 // express-session creates and manages login sessions (like a cookie)
 const session = require("express-session");
 
-// fs and path are built-in Node modules for reading/writing files
-const fs   = require("fs");
+// path is a built-in Node module for building file paths
 const path = require("path");
+
+// mongoose lets us talk to MongoDB using simple JavaScript models
+// (We no longer need the "fs" module because we're not using JSON files anymore)
+const mongoose = require("mongoose");
+
+// Fix for Windows DNS SRV resolution issues with MongoDB Atlas.
+// Node.js 18+ defaults to IPv6-first, which breaks SRV lookups on many Windows
+// networks. This line forces IPv4 first, which resolves ECONNREFUSED errors.
+const dns = require("dns");
+dns.setDefaultResultOrder("ipv4first");
+dns.setServers(["8.8.8.8", "1.1.1.1"]); // Use Google/Cloudflare DNS — system DNS blocks SRV queries
 
 
 // ============================================================
@@ -63,7 +73,6 @@ app.use(express.json());
 //
 // We create the middleware object first so we can share it with
 // Socket.IO later (see the "Share Session with Socket.IO" section).
-// ============================================================
 
 const sessionMiddleware = session({
     // secret: a private key used to sign the session cookie.
@@ -92,7 +101,6 @@ app.use(sessionMiddleware);
 //
 // We do this by handling the "/" route ourselves (below) before
 // the static middleware tries to serve it.
-// ============================================================
 
 // Serve login.html, register.html, auth.css, etc. freely —
 // anyone can access these without being logged in.
@@ -120,64 +128,115 @@ app.get("/", (req, res) => {
 
 
 // ============================================================
-// DATA PERSISTENCE — ROOMS
+// MONGOOSE SCHEMAS AND MODELS
 // ============================================================
-// Rooms and messages are saved to data/rooms.json.
+// A "schema" describes the shape of a document in MongoDB.
+// A "model" is the object we use to create, find, update, and delete documents.
+//
+// Think of it like this:
+//   Schema   = a blueprint (what fields does a document have?)
+//   Model    = a class that uses the blueprint (Room.find(), User.create(), etc.)
+//   Document = one record in the database (one room, one user)
 
-const ROOMS_FILE = path.join(__dirname, "data", "rooms.json");
 
-const DEFAULT_ROOMS = {
-    "Example Chat": {
-        password: "",
-        messages: [],
+// ----------------------------------------------------------
+// Message Schema (embedded inside Room — no separate collection)
+// ----------------------------------------------------------
+// Messages are stored directly inside their room document.
+// This is simpler than a separate "messages" collection for a school project.
+
+const messageSchema = new mongoose.Schema({
+    user: { type: String, required: true }, // who sent it
+    text: { type: String, required: true }, // the message text
+    time: { type: String, required: true }, // formatted time, e.g. "12:34 p.m."
+}, {
+    // _id: false means Mongoose won't add a separate ID to each message.
+    // Embedded messages don't need their own IDs.
+    _id: false,
+});
+
+
+// ----------------------------------------------------------
+// Room Schema
+// ----------------------------------------------------------
+// Each room document stores its name, optional password, and
+// an array of up to 100 embedded message objects.
+
+const roomSchema = new mongoose.Schema({
+    // The room's display name — must be unique (no two "General" rooms)
+    name: {
+        type:     String,
+        required: true,
+        unique:   true,
+        trim:     true,  // removes accidental leading/trailing spaces
     },
-};
 
-function loadRooms() {
-    try {
-        const raw = fs.readFileSync(ROOMS_FILE, "utf8");
-        return JSON.parse(raw);
-    } catch (err) {
-        console.log("No saved rooms found. Starting with default rooms.");
-        return { ...DEFAULT_ROOMS };
-    }
-}
+    // Optional password — empty string means the room is public
+    password: {
+        type:    String,
+        default: "",
+    },
 
-function saveRooms() {
-    const dir = path.dirname(ROOMS_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-    fs.writeFileSync(ROOMS_FILE, JSON.stringify(rooms, null, 2), "utf8");
-}
+    // Array of embedded message objects (up to 100, enforced in the handler)
+    messages: {
+        type:    [messageSchema],
+        default: [],
+    },
+});
 
-const rooms = loadRooms();
+// "Room" → Mongoose will use the collection named "rooms" in MongoDB (auto-pluralized)
+const Room = mongoose.model("Room", roomSchema);
+
+
+// ----------------------------------------------------------
+// User Schema
+// ----------------------------------------------------------
+// Each user document stores a username and a hashed password.
+
+const userSchema = new mongoose.Schema({
+    // The player's chosen display name — must be unique
+    username: {
+        type:     String,
+        required: true,
+        unique:   true,
+        trim:     true,
+    },
+
+    // The bcrypt hash of the user's password — NEVER the plain-text password!
+    passwordHash: {
+        type:     String,
+        required: true,
+    },
+});
+
+// "User" → Mongoose will use the collection named "users" in MongoDB
+const User = mongoose.model("User", userSchema);
 
 
 // ============================================================
-// DATA PERSISTENCE — USERS
+// CONNECT TO MONGODB AND SEED DEFAULT DATA
 // ============================================================
-// User accounts are saved to data/users.json.
-// We store each user's username and their hashed password.
-// Passwords are NEVER stored as plain text.
+// We connect to MongoDB first, then start the server.
+// The "seed" step ensures "Example Chat" always exists on startup.
 
-const USERS_FILE = path.join(__dirname, "data", "users.json");
+async function connectAndSeed() {
 
-function loadUsers() {
-    // Read the users file and return the array of user objects
-    try {
-        const raw = fs.readFileSync(USERS_FILE, "utf8");
-        return JSON.parse(raw).users || [];
-    } catch (err) {
-        // File doesn't exist yet — return an empty array
-        console.log("No users file found. Starting with no users.");
-        return [];
+    // mongoose.connect() opens the connection to Atlas.
+    // We await it so we know it's fully open before the server starts.
+    await mongoose.connect(process.env.MONGODB_URI, {
+        family: 4,                      // Force IPv4 at the socket level (backup for the dns setting above)
+        serverSelectionTimeoutMS: 10000, // Give Atlas 10 seconds to respond before giving up
+    });
+    console.log("Connected to MongoDB Atlas!");
+
+    // Check if "Example Chat" already exists in the database
+    const exists = await Room.findOne({ name: "Example Chat" });
+
+    if (!exists) {
+        // It doesn't exist yet — create it now
+        await Room.create({ name: "Example Chat", password: "", messages: [] });
+        console.log("Created default room: Example Chat");
     }
-}
-
-function saveUsers(users) {
-    // Write the users array back to disk, wrapped in the { users: [...] } structure
-    const dir = path.dirname(USERS_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-    fs.writeFileSync(USERS_FILE, JSON.stringify({ users }, null, 2), "utf8");
 }
 
 
@@ -206,9 +265,9 @@ app.get("/api/security-question", (_req, res) => {
 // Steps:
 //   1. Check all fields are present
 //   2. Compare the security answer to the one in .env
-//   3. Make sure the username isn't already taken
+//   3. Make sure the username isn't already taken (checked in MongoDB)
 //   4. Hash the password with bcrypt
-//   5. Save the new user to users.json
+//   5. Save the new user to MongoDB
 // ----------------------------------------------------------
 
 app.post("/api/register", async (req, res) => {
@@ -237,26 +296,26 @@ app.post("/api/register", async (req, res) => {
     }
 
     // --- Step 3: Make sure username isn't already taken ---
-    const users = loadUsers();
-    const alreadyExists = users.find(
-        (u) => u.username.toLowerCase() === username.toLowerCase()
-    );
+    // User.findOne() searches the "users" collection.
+    // The $regex with "i" flag makes the comparison case-insensitive.
+    const alreadyExists = await User.findOne({
+        username: { $regex: new RegExp(`^${username.trim()}$`, "i") },
+    });
 
     if (alreadyExists) {
         return res.status(400).json({ error: "That username is already taken." });
     }
 
     // --- Step 4: Hash the password ---
-    // bcrypt.hash(password, saltRounds) — more salt rounds = more secure but slower.
-    // 10 is the standard recommended value.
+    // bcrypt.hash(password, saltRounds) — 10 is the standard recommended value.
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // --- Step 5: Save the new user ---
-    users.push({
+    // --- Step 5: Save the new user to MongoDB ---
+    // User.create() inserts a new document into the "users" collection.
+    await User.create({
         username: username.trim(),
         passwordHash,
     });
-    saveUsers(users);
 
     console.log(`New account registered: ${username}`);
 
@@ -272,7 +331,7 @@ app.post("/api/register", async (req, res) => {
 // Expects JSON body: { username, password }
 //
 // Steps:
-//   1. Find the user by username
+//   1. Find the user by username in MongoDB
 //   2. Compare the submitted password to the stored hash
 //   3. If correct → save username to the session
 // ----------------------------------------------------------
@@ -284,11 +343,10 @@ app.post("/api/login", async (req, res) => {
         return res.status(400).json({ error: "Username and password are required." });
     }
 
-    // Find the user in our saved list (case-insensitive username match)
-    const users = loadUsers();
-    const user  = users.find(
-        (u) => u.username.toLowerCase() === username.toLowerCase()
-    );
+    // Find the user in MongoDB (case-insensitive username match)
+    const user = await User.findOne({
+        username: { $regex: new RegExp(`^${username}$`, "i") },
+    });
 
     if (!user) {
         // No account with that username — give a vague error so attackers
@@ -305,7 +363,7 @@ app.post("/api/login", async (req, res) => {
     }
 
     // Credentials are correct! Save the username in the session.
-    // From this point on, req.session.username will be set on every request.
+    // We use user.username (from DB) to preserve the original capitalisation.
     req.session.username = user.username;
 
     console.log(`User logged in: ${user.username}`);
@@ -349,6 +407,7 @@ app.get("/api/me", (req, res) => {
 // HELPER FUNCTIONS (SOCKET.IO)
 // ============================================================
 
+// Returns an array of usernames for everyone currently in a room
 function getUsersInRoom(roomName) {
     const usernames = [];
     io.sockets.sockets.forEach((s) => {
@@ -359,6 +418,7 @@ function getUsersInRoom(roomName) {
     return usernames;
 }
 
+// Sends the updated user list to everyone in a room
 function broadcastUserList(roomName) {
     io.to(roomName).emit("user list", getUsersInRoom(roomName));
 }
@@ -379,6 +439,8 @@ io.use((socket, next) => {
 // ============================================================
 // SOCKET.IO — REAL-TIME CONNECTION HANDLING
 // ============================================================
+// Every handler that touches MongoDB is declared "async" so we
+// can use "await" to wait for the database response before continuing.
 
 io.on("connection", (socket) => {
 
@@ -401,9 +463,15 @@ io.on("connection", (socket) => {
 
     // ----------------------------------------------------------
     // Event: "get rooms"
+    // The client asks for a list of all available room names.
     // ----------------------------------------------------------
-    socket.on("get rooms", () => {
-        socket.emit("room list", Object.keys(rooms));
+    socket.on("get rooms", async () => {
+        // Room.find() returns all room documents.
+        // { name: 1 } tells MongoDB to only return the "name" field (faster).
+        const roomDocs  = await Room.find({}, { name: 1 });
+        const roomNames = roomDocs.map(r => r.name);
+
+        socket.emit("room list", roomNames);
     });
 
 
@@ -411,23 +479,32 @@ io.on("connection", (socket) => {
     // Event: "create room"
     // data = { name: "Room Name", password: "secret" }
     // ----------------------------------------------------------
-    socket.on("create room", (data) => {
+    socket.on("create room", async (data) => {
         const { name, password } = data;
 
-        if (rooms[name]) {
+        // Check if a room with this name already exists in MongoDB
+        const existing = await Room.findOne({ name });
+
+        if (existing) {
             socket.emit("room error", `A room called "${name}" already exists.`);
             return;
         }
 
-        rooms[name] = {
+        // Insert a new room document into the "rooms" collection
+        await Room.create({
+            name,
             password: password || "",
             messages: [],
-        };
-        saveRooms();
+        });
 
         console.log(`Room created: "${name}" by ${socket.username}`);
 
-        io.emit("room list", Object.keys(rooms));
+        // Broadcast the updated room list to ALL connected clients
+        const roomDocs  = await Room.find({}, { name: 1 });
+        const roomNames = roomDocs.map(r => r.name);
+        io.emit("room list", roomNames);
+
+        // Join the creator to their new room immediately
         socket.emit("room joined", { name, messages: [] });
         socket.join(name);
         socket.currentRoom = name;
@@ -439,9 +516,11 @@ io.on("connection", (socket) => {
     // Event: "join room"
     // data = { name: "Room Name", password: "secret" }
     // ----------------------------------------------------------
-    socket.on("join room", (data) => {
+    socket.on("join room", async (data) => {
         const { name, password } = data;
-        const room = rooms[name];
+
+        // Look up the room in MongoDB
+        const room = await Room.findOne({ name });
 
         if (!room) {
             socket.emit("room error", `Room "${name}" does not exist.`);
@@ -453,6 +532,7 @@ io.on("connection", (socket) => {
             return;
         }
 
+        // Leave the previous room if switching
         if (socket.currentRoom && socket.currentRoom !== name) {
             socket.leave(socket.currentRoom);
             broadcastUserList(socket.currentRoom);
@@ -463,6 +543,8 @@ io.on("connection", (socket) => {
 
         console.log(`${socket.username} joined room: "${name}"`);
 
+        // Send the room's message history to the joining client.
+        // room.messages is the embedded array stored in MongoDB.
         socket.emit("room joined", { name, messages: room.messages });
         broadcastUserList(name);
     });
@@ -472,24 +554,29 @@ io.on("connection", (socket) => {
     // Event: "chat message"
     // data = { room: "Room Name", text: "Hello!" }
     // ----------------------------------------------------------
-    socket.on("chat message", (data) => {
+    socket.on("chat message", async (data) => {
         const { room, text } = data;
 
-        if (!rooms[room]) return;
-
+        // Build the message object (same shape as before)
         const message = {
             user: socket.username,
             text: text,
             time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         };
 
-        rooms[room].messages.push(message);
-        if (rooms[room].messages.length > 100) {
-            rooms[room].messages.shift();
-        }
+        // $push adds the new message to the messages array.
+        // $slice: -100 keeps only the LAST 100 messages automatically.
+        // This is one atomic MongoDB operation — no race conditions possible.
+        const updated = await Room.findOneAndUpdate(
+            { name: room },
+            { $push: { messages: { $each: [message], $slice: -100 } } },
+            { new: true },
+        );
 
-        saveRooms();
+        // If the room was deleted between the client sending and us processing, bail out
+        if (!updated) return;
 
+        // Broadcast the new message to everyone in the room
         io.to(room).emit("chat message", { room, message });
 
         console.log(`[${room}] ${message.user}: ${message.text}`);
@@ -500,7 +587,7 @@ io.on("connection", (socket) => {
     // Event: "delete room"
     // data = { name: "Room Name" }
     // ----------------------------------------------------------
-    socket.on("delete room", (data) => {
+    socket.on("delete room", async (data) => {
         const { name } = data;
 
         if (name === "Example Chat") {
@@ -508,17 +595,23 @@ io.on("connection", (socket) => {
             return;
         }
 
-        if (!rooms[name]) {
+        // Room.deleteOne() removes the document matching the filter
+        // result.deletedCount is 0 if not found, 1 if successfully deleted
+        const result = await Room.deleteOne({ name });
+
+        if (result.deletedCount === 0) {
             socket.emit("room error", `Room "${name}" does not exist.`);
             return;
         }
 
-        delete rooms[name];
-        saveRooms();
-
         console.log(`Room deleted: "${name}" by ${socket.username}`);
 
-        io.emit("room list", Object.keys(rooms));
+        // Send updated room list to everyone
+        const roomDocs  = await Room.find({}, { name: 1 });
+        const roomNames = roomDocs.map(r => r.name);
+        io.emit("room list", roomNames);
+
+        // Tell everyone who was in that room that it's gone
         io.to(name).emit("room deleted", name);
     });
 
@@ -540,9 +633,21 @@ io.on("connection", (socket) => {
 // ============================================================
 // START THE SERVER
 // ============================================================
+// We connect to MongoDB FIRST, then start listening for requests.
+// This ensures the database is ready before any user can log in
+// or send a message.
 
 const PORT = 3000;
 
-server.listen(PORT, () => {
-    console.log(`Quantum-Link is running at http://localhost:${PORT}`);
-});
+connectAndSeed()
+    .then(() => {
+        server.listen(PORT, () => {
+            console.log(`Quantum-Link is running at http://localhost:${PORT}`);
+        });
+    })
+    .catch((err) => {
+        // If MongoDB connection fails, print the error and stop the process.
+        // The server should NOT start if it has no database.
+        console.error("Failed to connect to MongoDB:", err.message);
+        process.exit(1);
+    });
