@@ -1,0 +1,17 @@
+# render.yaml
+# This file tells Render (render.com) how to build and run Quantum-Link.
+# Place this file in the project root (same folder as server.js).
+#
+# IMPORTANT: Do NOT put secrets (passwords, API keys) in this file.
+# Secrets like MONGODB_URI and SESSION_SECRET go in the Render dashboard
+# under Environment Variables — they are never stored in git.
+
+services:
+  - type: web              # This is a web server (not a background worker)
+    name: quantum-link     # Name shown in your Render dashboard
+    runtime: node          # Tell Render this is a Node.js app
+    buildCommand: npm install    # Install all dependencies from package.json
+    startCommand: npm start      # Runs "node server.js" via the start script
+    envVars:
+      - key: NODE_ENV
+        value: production  # Tells Node.js we are in production mode

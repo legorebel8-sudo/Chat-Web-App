@@ -637,7 +637,9 @@ io.on("connection", (socket) => {
 // This ensures the database is ready before any user can log in
 // or send a message.
 
-const PORT = 3000;
+// Use the port assigned by Render (or any cloud host) at runtime.
+// If no PORT env var is set (e.g. running locally), fall back to 3000.
+const PORT = process.env.PORT || 3000;
 
 connectAndSeed()
     .then(() => {
