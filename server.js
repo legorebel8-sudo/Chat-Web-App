@@ -561,7 +561,7 @@ io.on("connection", (socket) => {
         const message = {
             user: socket.username,
             text: text,
-            time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            time: new Date().toLocaleTimeString("en-CA", { hour: "2-digit", minute: "2-digit", timeZone: "America/Toronto" }),
         };
 
         // $push adds the new message to the messages array.
