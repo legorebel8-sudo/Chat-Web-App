@@ -61,6 +61,7 @@ const sendButton      = document.getElementById("sendButton");
 const state = {
     currentChat: null,   // name of the room that is currently open (null = none)
     username:    null,   // the logged-in username (fetched from the server session)
+    isAdmin:     false,  // true only if the server confirmed this user is the admin
     rooms:       [],     // full list of room names received from the server
 };
 
@@ -125,8 +126,9 @@ async function init() {
 
         const data = await response.json();
 
-        // Store the username and update the sidebar
+        // Store the username and admin flag, then update the sidebar
         state.username = data.username;
+        state.isAdmin  = data.isAdmin === true; // defaults to false if missing
         myUsername.textContent = data.username;
         setAvatar(myAvatar, data.username);
 
@@ -282,7 +284,8 @@ function createChatListItem(roomName) {
     item.appendChild(avatarEl);
     item.appendChild(info);
 
-    if (roomName !== "Example Chat") {
+    // Only show the delete button to the admin (non-admins see no button at all)
+    if (roomName !== "Example Chat" && state.isAdmin) {
         const deleteBtn = document.createElement("button");
         deleteBtn.classList.add("delete-chat-btn");
         deleteBtn.title       = "Delete room";
