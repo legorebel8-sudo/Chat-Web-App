@@ -399,7 +399,12 @@ app.get("/api/me", (req, res) => {
         // 401 means "you need to be logged in to use this"
         return res.status(401).json({ error: "Not logged in." });
     }
-    res.json({ username: req.session.username });
+
+    // Check if this user is the designated admin.
+    // We compare their username to the ADMIN_USERNAME value in the .env file.
+    const isAdmin = req.session.username === process.env.ADMIN_USERNAME;
+
+    res.json({ username: req.session.username, isAdmin });
 });
 
 
@@ -589,6 +594,13 @@ io.on("connection", (socket) => {
     // ----------------------------------------------------------
     socket.on("delete room", async (data) => {
         const { name } = data;
+
+        // Authorization check — only the admin can delete rooms.
+        // socket.username is set from the verified session when the socket connects.
+        if (socket.username !== process.env.ADMIN_USERNAME) {
+            socket.emit("room error", "You can't delete chats");
+            return;
+        }
 
         if (name === "Example Chat") {
             socket.emit("room error", "The Example Chat cannot be deleted.");
